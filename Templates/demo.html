@@ -1,0 +1,490 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard - User Profiles</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #fff8f0;
+      color: #1e1e1e;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #f7931e;
+    }
+    .logout-link {
+      margin-top: 1rem;
+      text-align: right;
+    }
+    .logout-link a {
+      color: #f7931e;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .logout-link a:hover {
+      text-decoration: underline;
+    }
+    .export-btn {
+      background-color: #f7931e;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-bottom: 2rem;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .export-btn:hover {
+      background-color: #ed9c3f;
+    }
+    .user-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(234, 133, 32, 0.1);
+    }
+    .user-info p {
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .appliance-list ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .appliance-list li {
+      margin: 8px 0;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .appliance-list form {
+      margin-left: 10px;
+    }
+    button {
+      background-color: #f7931e;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #d67a00;
+    }
+    .actions button {
+      margin-right: 10px;
+    }
+    .remove-user-btn {
+      background-color: #b71c1c;
+      margin-top: 10px;
+    }
+    .remove-user-btn:hover {
+      background-color: #7f0000;
+    }
+    form.inline-form {
+      display: inline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard - User Profiles</h1>
+  
+  <div class="logout-link">
+    <a href="{% url 'logout' %}">Logout</a>
+  </div>
+
+  <button class="export-btn" onclick="window.location.href='{% url 'export_user_data' %}'">Export to Excel</button>
+
+  {% for profile in user_profiles %}
+  <div class="user-card">
+    <div class="user-info">
+      <p><strong>Name:</strong> {{ profile.full_name }}</p>
+      <p><strong>Contact Number:</strong> {{ profile.contact_number }}</p>
+      <p><strong>Email:</strong> {{ profile.user.email }}</p>
+      <p><strong>Address:</strong> {{ profile.physical_address }}</p>
+    </div>
+
+    <div class="appliance-list">
+      <h3>Appliances</h3>
+      <ul>
+        {% for appliance in profile.appliances.all %}
+        <li>
+          {{ appliance.name }} (Power: {{ appliance.power_rating }}W, Quantity: {{ appliance.quantity }})
+          <form method="post" action="{% url 'admin_remove_appliance' appliance.id %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit">Remove</button>
+          </form>
+        </li>
+        {% empty %}
+        <li>No appliances</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <form method="post" action="{% url 'admin_remove_user' profile.id %}">
+      {% csrf_token %}
+      <button type="submit" class="remove-user-btn">Remove User</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  <h2>Add Appliance for User</h2>
+  <div class="container" style="max-width: 700px; margin: 40px auto; background: #ffffff; padding: 2.5rem 3rem; border-radius: 12px; box-shadow: 0 6px 12px rgba(247, 147, 30, 0.15);">
+    <form id="applianceForm" method="post" action="{% url 'admin_add_appliance' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="user_profile_id" style="font-weight: 600; color: #f7931e; margin-bottom: 0.6rem; display: block;">Select User:</label>
+        <select name="user_profile_id" id="user_profile_id" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease; margin-bottom: 1.5rem;">
+          <option value="" disabled selected>Select a user</option>
+          {% for profile in user_profiles %}
+          <option value="{{ profile.id }}">{{ profile.full_name }} ({{ profile.user.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="step" id="step2">
+        <h2 style="color: #f7931e; font-weight: 700; font-size: 2rem; margin-bottom: 20px;">Step 2: Select Your Purpose</h2>
+        <div class="form-group">
+          <select id="purposeSelect" name="purpose" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease; margin-bottom: 1.5rem;">
+            <option value="">Select Usage Purpose</option>
+            <option value="home">Home</option>
+            <option value="hospital">Hospital</option>
+            <option value="office">Office</option>
+            <option value="factory">Factory</option>
+          </select>
+        </div>
+      </div>
+      <div class="step" id="step3">
+        <h2 style="color: #f7931e; font-weight: 700; font-size: 2rem; margin-bottom: 20px;">Step 3: Add Appliances</h2>
+        <div id="applianceContainer"></div>
+        <div class="button-group" style="margin-top: 20px;">
+          <button type="button" id="addApplianceBtn" onclick="addAppliance()" style="padding: 1rem 2rem; border: none; background-color: #f7931e; color: white; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem; transition: background-color 0.3s ease; margin-right: 8px;">＋ Add Appliance</button>
+          <button type="submit" id="submitBtn" style="padding: 1rem 2rem; border: none; background-color: #f7931e; color: white; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem; transition: background-color 0.3s ease;">Submit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <template id="applianceTemplate">
+    <div class="appliance-section" style="border: 1px solid #a5d6a7; padding: 1rem 1.2rem; border-radius: 10px; margin-bottom: 1.5rem; background: #f0f9f0;">
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Appliance Type</label>
+        <select class="appliance-select" name="name[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+        </select>
+      </div>
+      <div class="brand-model-group" style="display: flex; gap: 1rem;">
+        <div class="form-group" style="flex: 1;">
+          <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Brand</label>
+          <select class="brand-select" name="brand[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+          </select>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Model</label>
+          <select class="model-select" name="model[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top: 0.5rem;">
+        <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Daily Usage Time (hours)</label>
+        <input type="number" min="0" max="24" class="usage-time" name="usage_time[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+      </div>
+      <div class="form-group" style="margin-top: 0.5rem;">
+        <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Quantity</label>
+        <input type="number" min="1" class="quantity" name="quantity[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+      </div>
+      <div class="form-group" style="margin-top: 0.5rem;">
+        <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; color: #f7931e;">Days Used Per Week</label>
+        <input type="number" min="1" max="7" class="days-used" name="days_used[]" required style="width: 100%; padding: 0.9rem 1rem; border: 1.5px solid #a5d6a7; border-radius: 10px; font-size: 1.05rem; transition: border-color 0.3s ease;">
+      </div>
+      <div class="wattage-display" style="font-weight: 600; margin-top: 0.5rem; color: #2e7d32;"></div>
+    </div>
+  </template>
+
+  <script>
+  const applianceData = {
+      "home": [
+      {
+        "appliance": "Ceiling Fan",
+        "brands": [
+          {
+            "name": "Usha",
+            "models": ["Swift", "Striker"],
+            "wattage": [75, 70]
+          },
+          {
+            "name": "Orient",
+            "models": ["Aeroquiet", "Summer Cool"],
+            "wattage": [65, 72]
+          }
+        ]
+      },
+      {
+        "appliance": "LED Bulb",
+        "brands": [
+          {
+            "name": "Philips",
+            "models": ["Cool Daylight 9W", "Warm White 12W"],
+            "wattage": [9, 12]
+          },
+          {
+            "name": "Wipro",
+            "models": ["Garnet 9W", "Smart Bulb 12W"],
+            "wattage": [9, 12]
+          }
+        ]
+      },
+      {
+        "appliance": "Refrigerator",
+        "brands": [
+          {
+            "name": "LG",
+            "models": ["190L", "260L"],
+            "wattage": [120, 200]
+          },
+          {
+            "name": "Samsung",
+            "models": ["253L", "275L"],
+            "wattage": [130, 220]
+          }
+        ]
+      },
+      {
+        "appliance": "Washing Machine",
+        "brands": [
+          {
+            "name": "IFB",
+            "models": ["Front Load", "Top Load"],
+            "wattage": [500, 800]
+          },
+          {
+            "name": "Samsung",
+            "models": ["EcoBubble", "ActiveWash"],
+            "wattage": [450, 850]
+          }
+        ]
+      },
+      {
+        "appliance": "Microwave Oven",
+        "brands": [
+          {
+            "name": "IFB",
+            "models": ["30BRC2", "20PG4S"],
+            "wattage": [900, 1200]
+          },
+          {
+            "name": "LG",
+            "models": ["MC2886BRUM", "MS2043DB"],
+            "wattage": [1000, 1300]
+          }
+        ]
+      },
+      {
+        "appliance": "Air Conditioner",
+        "brands": [
+          {
+            "name": "Voltas",
+            "models": ["123V CZT3", "185V JZJ"],
+            "wattage": [1200, 1500]
+          },
+          {
+            "name": "Daikin",
+            "models": ["FTKM35TV", "FTKF50TV"],
+            "wattage": [1100, 1700]
+          }
+        ]
+      },
+      {
+        "appliance": "Induction Cooktop",
+        "brands": [
+          {
+            "name": "Prestige",
+            "models": ["PIC 20", "PIC 16.0+"],
+            "wattage": [1600, 2000]
+          },
+          {
+            "name": "Philips",
+            "models": ["HD4928", "HD4938"],
+            "wattage": [1800, 2100]
+          }
+        ]
+      },
+      {
+        "appliance": "Geyser",
+        "brands": [
+          {
+            "name": "AO Smith",
+            "models": ["HSE-SDS", "EWS-3"],
+            "wattage": [2000, 3000]
+          },
+          {
+            "name": "Bajaj",
+            "models": ["New Shakti", "Calenta"],
+            "wattage": [2000, 2500]
+          }
+        ]
+      },
+      {
+        "appliance": "TV",
+        "brands": [
+          {
+            "name": "Sony",
+            "name": "Airtel Digital TV",
+            "models": ["Xstream", "HD Box"],
+            "wattage": [14, 20]
+          }
+        ]
+      }
+      ],
+      "hospital": [
+      {
+        "appliance": "Ventilator",
+        "brands": [
+          { "name": "Dräger", "models": ["Evita Infinity V500", "Savina 300"], "wattage": [300, 400] },
+          { "name": "GE Healthcare", "models": ["Engström", "Carestation 600"], "wattage": [350, 500] }
+        ]
+      },
+      {
+        "appliance": "Defibrillator",
+        "brands": [
+          { "name": "Philips", "models": ["HeartStart XL", "FRx"], "wattage": [100, 150] },
+          { "name": "Zoll", "models": ["AED Plus", "X Series"], "wattage": [120, 180] }
+        ]
+      },
+      {
+        "appliance": "MRI Machine",
+        "brands": [
+          { "name": "GE Healthcare", "models": ["Signa Explorer", "Optima MR360"], "wattage": [15000, 25000] },
+          { "name": "Siemens", "models": ["Magnetom Aera", "Avanto"], "wattage": [12000, 20000] }
+        ]
+      },
+      {
+        "appliance": "X-Ray Machine",
+        "brands": [
+          { "name": "Allengers", "models": ["MARS 15", "MARS 35"], "wattage": [3000, 7000] },
+          { "name": "GE", "models": ["Optima XR200amx", "Brivo XR285amx"], "wattage": [2500, 6500] }
+        ]
+      },
+      {
+        "appliance": "Patient Monitor",
+        "brands": [
+          { "name": "Philips", "models": ["IntelliVue MP30", "Efficia CM150"], "wattage": [60, 80] },
+          { "name": "Nihon Kohden", "models": ["Life Scope", "Cardiolife"], "wattage": [55, 75] }
+        ]
+      },
+      {
+        "appliance": "Suction Machine",
+        "brands": [
+          { "name": "Romsons", "models": ["SuctionPro", "DuraVac"], "wattage": [100, 120] },
+          { "name": "Allied", "models": ["Vacutron", "SuctionPro 60"], "wattage": [90, 130] }
+        ]
+      },
+      {
+        "appliance": "Autoclave",
+        "brands": [
+          { "name": "Astell", "models": ["AMSB232", "ASB250"], "wattage": [2000, 3500] },
+          { "name": "Remi", "models": ["RAC-112", "RAC-204"], "wattage": [1800, 3200] }
+        ]
+      },
+      {
+        "appliance": "Infusion Pump",
+        "brands": [
+          { "name": "B Braun", "models": ["Infusomat Space", "Perfusor Space"], "wattage": [20, 35] },
+          { "name": "Smiths Medical", "models": ["CADD-Solis", "Medfusion 3500"], "wattage": [18, 30] }
+        ]
+      },
+      {
+        "appliance": "Ultrasound Machine",
+        "brands": [
+          { "name": "Samsung", "models": ["HS50", "HS40"], "wattage": [500, 1000] },
+          { "name": "GE Healthcare", "models": ["Voluson", "Logiq E9"], "wattage": [750, 1100] }
+        ]
+      },
+      {
+        "appliance": "ECG Machine",
+        "brands": [
+          { "name": "BPL", "models": ["Cardiart 9108D", "6108T"], "wattage": [30, 60] },
+          { "name": "Schiller", "models": ["CARDIOVIT AT-1", "AT-102"], "wattage": [35, 70] }
+        ]
+      },
+      {
+        "appliance": "Nebulizer",
+        "brands": [
+          { "name": "Omron", "models": ["NE C28", "NE U22"], "wattage": [50, 60] },
+          { "name": "Dr Trust", "models": ["Compressor Nebulizer", "Mesh Nebulizer"], "wattage": [30, 45] }
+        ]
+      },
+      {
+        "appliance": "Dental Chair Unit",
+        "brands": [
+          { "name": "Confident Dental", "models": ["Avyanna", "Prelude"], "wattage": [800, 1200] },
+          { "name": "Runyes", "models": ["Care 33", "XH605"], "wattage": [900, 1300] }
+        ]
+      },
+      {
+        "appliance": "Surgical Light",
+        "brands": [
+          { "name": "Dr. Mach", "models": ["Mach LED 5", "LED 2SC"], "wattage": [100, 150] },
+          { "name": "Meditech", "models": ["OT Light 120", "LUXOR"], "wattage": [120, 160] }
+        ]
+      },
+      {
+        "appliance": "Surgical Table",
+        "brands": [
+          { "name": "Skytron", "models": ["1602 Essenti", "1603 Ultra"], "wattage": [300, 500] },
+          { "name": "Mediland", "models": ["OP850", "OP830"], "wattage": [250, 450] }
+        ]
+      },
+      {
+        "appliance": "CPAP Machine",
+        "brands": [
+          { "name": "ResMed", "models": ["AirSense 10", "S9 Elite"], "wattage": [60, 90] },
+          { "name": "Philips", "models": ["DreamStation", "System One"], "wattage": [70, 100] }
+        ]
+      }
+      ],
+      "office": [
+      {
+        "appliance": "Desktop Computer",
+        "brands": [
+          { "name": "HP", "models": ["ProDesk 400", "EliteDesk 800"], "wattage": [250, 300] },
+          { "name": "Dell", "models": ["OptiPlex 7090", "Vostro 3671"], "wattage": [200, 280] }
+        ]
+      },
+      {
+        "appliance": "Laptop",
+        "brands": [
+          { "name": "Lenovo", "models": ["ThinkPad E15", "IdeaPad Slim 5"], "wattage": [45, 65] },
+          { "name": "HP", "models": ["Pavilion x360", "EliteBook 840"], "wattage": [45, 65] }
+        ]
+      },
+      {
+        "appliance": "Printer",
+        "brands": [
+          { "name": "HP", "models": ["LaserJet Pro M126nw", "Ink Tank 419"], "wattage": [350, 500] },
+          { "name": "Canon", "models": ["Pixma G3010", "imageCLASS LBP2900B"], "wattage": [300, 450] }
+        ]
+      },
+      {
+        "appliance": "Air Conditioner",
+        "brands": [
+          { "name": "Daikin", "models": ["FTKF50TV", "FTL50TV"], "wattage": [1500, 2000] },
+          { "name": "Voltas", "models": ["185V ADQ", "123V CZT"], "wattage": [1400, 1800] }
+        ]
+      },
+      {
+        "appliance": "Ceiling Fan",
+        "brands": [
+</body>
+</html>

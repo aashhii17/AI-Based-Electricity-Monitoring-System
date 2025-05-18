@@ -1,0 +1,667 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Electricity Dashboard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #f7931e;
+      --background: #fff8f0;
+      --dark-background: #121212;
+      --card-bg: #ffffff;
+      --card-bg-dark: #1e1e1e;
+      --text-light: #fff;
+      --text-dark: #1e1e1e;
+      --button-bg: #3b82f6;
+      --button-hover-bg: #2563eb;
+      --button-text: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--background);
+      color: var(--text-dark);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-y: hidden;
+    }
+.profile-actions li {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 8px;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+.profile-actions li:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+    body.dark {
+      background-color: var(--dark-background);
+      color: var(--text-light);
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: var(--primary);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 70px;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar.collapsed h2 {
+      opacity: 0;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0 0 0 10px;
+    }
+
+    .sidebar ul li {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 8px;
+      transition: 0.3s;
+      display: flex;
+      align-items: center;
+    }
+
+    .sidebar ul li:hover,
+    .sidebar ul li.active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .sidebar ul li span {
+      margin-left: 12px;
+      white-space: nowrap;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar.collapsed ul li span {
+      opacity: 0;
+    }
+
+    .sidebar-footer {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      margin: 0 20px 20px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .main {
+      flex-grow: 1;
+      padding: 20px 40px;
+      overflow-y: auto;
+      max-height: 100vh;
+      box-sizing: border-box;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .dashboard-section {
+      display: none;
+    }
+
+    .dashboard-section.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 20px;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+
+    .card, .chart-container {
+      background: var(--card-bg);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      border-radius: 16px;
+      padding: 20px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      background-color: #fff;
+    }
+
+    body.dark .card, body.dark .chart-container {
+      background: var(--card-bg-dark);
+      color: var(--text-light);
+    }
+
+    .card h3 {
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .appliance-list li {
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .theme-toggle {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .chart-container {
+      margin-top: 30px;
+    }
+.action-buttons {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.action-buttons button {
+  flex: 1;
+  background-color: var(--button-bg);
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--button-text);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.action-buttons button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div>
+      <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+      <h2>Dashboard</h2>
+<ul>
+  <li class="active" data-section="overview">📊 <span>Overview</span></li>
+  <li data-section="predictions">📈 <span>Predictions</span></li>
+  <li data-section="reports">📝 <span>Reports</span></li>
+  <li data-section="profile">👤 <span>Profile</span></li>
+</ul>
+
+<div class="profile-actions" style="display: none; padding: 10px;">
+  <li onclick="location.href='/logout'">🔌 <span>Log out</span></li>
+  <li onclick="location.href='/delete-account'">🗑️ <span>Delete account</span></li>
+  <li onclick="location.href='/switch-account'">➡️ <span>Switch account</span></li>
+</div>
+
+    </div>
+    <div class="sidebar-footer">
+      <label class="theme-toggle">
+        <input type="checkbox" id="themeSwitch" />
+         Dark Mode
+      </label>
+    </div>
+  </div>
+
+  <div class="main">
+    <section id="overview" class="dashboard-section active">
+      <h2>Hi, {{ full_name }}</h2>
+      <h1>Electricity Consumption Dashboard</h1>
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>Registered Appliances</h3>
+          <ul class="appliance-list">
+            {% for appliance in appliances %}
+              <li>{{ appliance.name }} ({{ appliance.quantity }}) - {{ appliance.power_rating }} W</li>
+            {% empty %}
+              <li>No appliances registered.</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Overview</h3>
+          <p>Total Consumption: <strong>{{ total_consumption|default:"N/A" }} kWh</strong></p>
+          <p>Total Cost: <strong>₹{{ total_cost|default:"N/A" }}</strong></p>
+          <p>Efficiency: <strong>{{ efficiency|default:"N/A" }}%</strong></p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <h3>Electricity Consumption (kWh)</h3>
+        <canvas id="electricityChart"></canvas>
+      </div>
+
+      <div class="chart-container" style="margin-top: 40px;">
+        <h3>Wasted Electricity (kWh)</h3>
+        <canvas id="wastedElectricityChart"></canvas>
+      </div>
+
+      <div class="chart-container" style="margin-top: 40px;">
+        <h3>Electricity Consumption (kWh)</h3>
+        <canvas id="electricityConsumptionChart"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Data for wasted electricity chart (placeholder)
+    const wastedElectricityLabels = ['May', 'Jul', 'Sep', 'Nov'];
+    const consumedData = [300, 600, 450, 700];
+    const wastedData = [120, 350, 190, 300];
+
+    const wastedElectricityChart = new Chart(document.getElementById('wastedElectricityChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: wastedElectricityLabels,
+        datasets: [
+          {
+            label: 'Consumed',
+            data: consumedData,
+            borderColor: 'rgba(139, 69, 69, 1)',
+            backgroundColor: 'rgba(139, 69, 69, 0.2)',
+            fill: false,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          },
+          {
+            label: 'Wasted',
+            data: wastedData,
+            borderColor: 'rgba(255, 182, 193, 1)',
+            backgroundColor: 'rgba(255, 182, 193, 0.2)',
+            fill: false,
+            borderDash: [10,5],
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: getComputedStyle(document.body).color } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: getComputedStyle(document.body).color },
+            title: { display: true, text: 'kWh', color: getComputedStyle(document.body).color }
+          },
+          x: {
+            ticks: { color: getComputedStyle(document.body).color }
+          }
+        }
+      }
+    });
+
+    // Data for electricity consumption chart (placeholder)
+    const electricityConsumptionLabels = ['May', 'Jul', 'Sep', 'Nov'];
+    const regularEnergyData = [150, 290, 470, 320];
+    const solarPowerData = [250, 230, 400, 500];
+
+    const electricityConsumptionChart = new Chart(document.getElementById('electricityConsumptionChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: electricityConsumptionLabels,
+        datasets: [
+          {
+            label: 'Regular Energy',
+            data: regularEnergyData,
+            backgroundColor: 'rgba(255, 182, 193, 0.7)',
+          },
+          {
+            label: 'Generated Solar Power',
+            data: solarPowerData,
+            backgroundColor: 'rgba(139, 69, 69, 0.7)',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: getComputedStyle(document.body).color } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: getComputedStyle(document.body).color },
+            title: { display: true, text: 'kWh', color: getComputedStyle(document.body).color }
+          },
+          x: {
+            ticks: { color: getComputedStyle(document.body).color }
+          }
+        }
+      }
+    });
+  </script>
+
+    <style>
+      /* Responsive styles for prediction section */
+      @media (max-width: 900px) {
+        #predictions > div {
+          flex-direction: column !important;
+        }
+        #predictions > div > div {
+          max-width: 100% !important;
+          flex: 1 1 100% !important;
+        }
+      }
+    </style>
+
+    <style>
+      /* Responsive styles for prediction section */
+      @media (max-width: 900px) {
+        #predictions > div {
+          flex-direction: column !important;
+        }
+        #predictions > div > div {
+          max-width: 100% !important;
+          flex: 1 1 100% !important;
+        }
+      }
+      /* Card hover movement effect */
+      #predictions > div > div {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      #predictions > div > div:hover {
+        transform: translateY(-8px) scale(1.03);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 10;
+      }
+    </style>
+
+    <section id="predictions" class="dashboard-section">
+      <h2>Electricity Usage Forecast</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
+
+        <!-- Circular Gauge -->
+        <div style="flex: 1 1 250px; max-width: 250px; background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <svg width="150" height="150" viewBox="0 0 36 36" style="transform: rotate(-90deg);">
+            <path
+              stroke="#eee"
+              stroke-width="3.8"
+              fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path
+              stroke="var(--primary)"
+              stroke-width="3.8"
+              stroke-dasharray="70, 100"
+              stroke-linecap="round"
+              fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831"
+            />
+            <text x="18" y="20.35" fill="var(--text-dark)" font-size="6" text-anchor="middle" alignment-baseline="middle" style="transform: rotate(90deg);">🌡️</text>
+          </svg>
+          <p style="margin-top: 15px; font-size: 14px; text-align: center; color: var(--text-dark);">
+            You’re on track<br />to exceed last month’s usage
+          </p>
+        </div>
+
+        <!-- Predicted Total Usage -->
+        <div style="flex: 2 1 300px; background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <h3 style="margin-bottom: 10px;">Predicted Total Usage</h3>
+          <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-dark);">
+            Based on forecasted temperatures,<br />
+            your expected electricity usage
+          </p>
+          <p style="font-weight: 700; font-size: 24px; color: var(--text-dark);">
+            {{ predicted_total_usage|default:"342" }} kWh
+          </p>
+        </div>
+
+        <!-- High Usage Alerts -->
+        <div style="flex: 1 1 250px; background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: flex-start; gap: 10px;">
+          <div style="background: #ccc; border-radius: 4px; padding: 6px; display: flex; align-items: center; justify-content: center; min-width: 30px; height: 30px;">
+            ⚠️
+          </div>
+          <div>
+            <h4 style="margin: 0 0 8px 0; font-weight: 700;">High usage Alerts</h4>
+            <p style="font-size: 14px; margin: 0; color: var(--text-dark);">
+              AC load expected to increase during heatwave on 14–16 May – consider setting thermostat to 26°C
+            </p>
+          </div>
+        </div>
+
+        <!-- Weather-based Forecast -->
+        <div style="flex: 1 1 100%; background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px;">
+          <h4 style="margin-bottom: 10px; font-weight: 700;">Weather-based Forecast</h4>
+          <p style="font-size: 14px; color: var(--text-dark);">
+            1. Upcoming 5 days have high temperatures (35-38°C), expect higher AC usage<br />
+            Rainy days next week may reduce cooling load – slight drop in usage expected
+          </p>
+        </div>
+
+        <!-- 5-Day Outlook -->
+        <div style="flex: 1 1 100%; display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+          <div style="flex: 1 1 150px; background: var(--card-bg); border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <h4 style="margin-bottom: 8px; font-weight: 700;">5-Day Outlook</h4>
+            <p style="font-size: 14px; margin: 0;">Day 1<br />Expected: <strong>{{ day1_usage|default:"15" }} kWh</strong></p>
+          </div>
+          <div style="flex: 1 1 100px; background: var(--card-bg); border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 24px;">☀️</div>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">{{ day1_temp|default:"38" }}°C</p>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">Expected: {{ day1_usage|default:"15" }} kWh</p>
+            <p style="margin: 5px 0 0 0;">₹{{ day1_cost|default:"110" }}</p>
+          </div>
+          <div style="flex: 1 1 100px; background: var(--card-bg); border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 24px;">🌧️</div>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">{{ day2_temp|default:"32" }}°C</p>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">Expected: {{ day2_usage|default:"11.2" }} kWh</p>
+            <p style="margin: 5px 0 0 0;">₹{{ day2_cost|default:"85" }}</p>
+          </div>
+          <div style="flex: 1 1 100px; background: var(--card-bg); border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 24px;">☁️</div>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">{{ day3_temp|default:"30" }}°C</p>
+            <p style="margin: 5px 0 0 0; font-weight: 700;">Expected: {{ day3_usage|default:"10.5" }} kWh</p>
+            <p style="margin: 5px 0 0 0;">₹{{ day3_cost|default:"73" }}</p>
+          </div>
+        </div>
+
+        <!-- AI Efficiency Tips -->
+        <div style="flex: 1 1 250px; background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; display: flex; gap: 10px; align-items: flex-start;">
+          <div style="font-size: 24px;">🟡</div>
+          <div>
+            <h4 style="margin: 0 0 8px 0; font-weight: 700;">AI Efficiency Tips</h4>
+            <p style="font-size: 14px; margin: 0; color: var(--text-dark);">
+              You can save ₹{{ ai_savings|default:"600" }} this month by reducing geyser use during afternoons and shifting laundry to evenings (lower grid load).<br />
+              Cooler nights ahead – switch from AC to fan post-10 PM to save up
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="reports" class="dashboard-section">
+      <div class="card">
+        <h3>Reports</h3>
+        <p>Downloadable reports and summaries will appear here.</p>
+      </div>
+    </section>
+
+  <!-- Full-page wrapper to center profile card -->
+<div style="
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f4f4f4;
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+">
+  <section id="profile" class="dashboard-section" style="width: 100%; max-width: 900px; margin: 0 auto;">
+    <div class="card profile-card" style="
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      border-radius: 20px;
+      padding: 40px;
+      background: linear-gradient(135deg, #f7931e, #ffb347);
+      color: white;
+      box-sizing: border-box;
+      max-width: 900px;
+      margin: 0 auto;
+    ">
+      <h3 style="text-align: center; font-weight: 700; font-size: 28px; margin-bottom: 30px;">User Profile</h3>
+      
+      <p style="font-size: 18px; margin-bottom: 12px;"><strong>Name:</strong> {{ full_name }}</p>
+      <p style="font-size: 18px; margin-bottom: 12px;"><strong>Contact Number:</strong> {{ contact_number }}</p>
+      <p style="font-size: 18px; margin-bottom: 12px;"><strong>Email:</strong> {{ email }}</p>
+      <p style="font-size: 18px; margin-bottom: 30px;"><strong>Address:</strong> {{ physical_address }}</p>
+
+      <h4 style="font-weight: 600; font-size: 22px; margin-bottom: 20px; border-bottom: 2px solid white; padding-bottom: 8px;">Your Appliances</h4>
+      
+      <ul class="appliance-list" style="list-style: none; padding-left: 0; max-height: 200px; overflow-y: auto; margin-bottom: 30px;">
+        {% for appliance in appliances %}
+          <li style="font-size: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px;">
+            <span>{{ appliance.name }} ({{ appliance.quantity }}) - {{ appliance.power_rating }} W</span>
+            <form method="post" action="{% url 'remove_appliance' appliance.id %}" style="margin: 0;">
+              {% csrf_token %}
+              <button type="submit" style="background-color: #fff; color: #f7931e; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.3s ease;">Remove</button>
+            </form>
+          </li>
+        {% empty %}
+          <li style="font-size: 18px;">No appliances registered.</li>
+        {% endfor %}
+      </ul>
+
+      <div class="action-buttons" style="display: flex; justify-content: center;">
+        <button onclick="location.href='{% url 'add_appliances' %}'" style="background-color: white; color: #f7931e; padding: 14px 40px; font-size: 18px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background-color 0.3s ease;">Add Appliance</button>
+      </div>
+    </div>
+  </section>
+</div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Toggle dark mode
+    document.getElementById("themeSwitch").addEventListener("change", function () {
+      document.body.classList.toggle("dark");
+    });
+
+    // Sidebar collapse
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("collapsed");
+    }
+
+    // Sidebar navigation
+  document.querySelectorAll(".sidebar ul li").forEach(item => {
+  item.addEventListener("click", () => {
+    document.querySelectorAll(".sidebar ul li").forEach(li => li.classList.remove("active"));
+    item.classList.add("active");
+
+    document.querySelectorAll(".dashboard-section").forEach(section => {
+      section.classList.remove("active");
+    });
+
+    const target = item.getAttribute("data-section");
+    document.getElementById(target).classList.add("active");
+
+    // Show profile actions only when profile is selected
+    const profileActions = document.querySelector(".profile-actions");
+    if (target === "profile") {
+      profileActions.style.display = "block";
+    } else {
+      profileActions.style.display = "none";
+    }
+  });
+});
+
+
+    // Data for electricity consumption chart
+    const applianceNames = JSON.parse('{{ appliance_names|escapejs }}');
+    const applianceConsumptions = JSON.parse('{{ appliance_consumptions|escapejs }}');
+    const applianceCosts = JSON.parse('{{ appliance_costs|escapejs }}');
+
+    const electricityChart = new Chart(document.getElementById('electricityChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: applianceNames,
+        datasets: [
+          {
+            label: 'Electricity Consumption (kWh)',
+            data: applianceConsumptions,
+            backgroundColor: 'rgba(247, 147, 30, 0.7)'
+          },
+          {
+            label: 'Cost (₹)',
+            data: applianceCosts,
+            backgroundColor: 'rgba(244, 161, 161, 0.7)'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: getComputedStyle(document.body).color } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: getComputedStyle(document.body).color },
+            title: { display: true, text: 'Value', color: getComputedStyle(document.body).color }
+          },
+          x: {
+            ticks: { color: getComputedStyle(document.body).color }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

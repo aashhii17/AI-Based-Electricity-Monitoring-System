@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Electricity Monitoring System</title>
+<style>
+/* Your original CSS remains unchanged */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+body { background-color: #f5f7fa; padding: 2rem; }
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  padding: 3rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+h1 { color: #f7931e; margin-bottom: 1rem; font-size: 2.5rem; }
+.subheading { color: #666; margin-bottom: 2rem; font-size: 1.1rem; }
+.form-section { margin-bottom: 2rem; }
+.form-group { margin-bottom: 1.5rem; }
+label {
+  display: block; margin-bottom: 0.5rem; color: #333; font-weight: bold;
+}
+input, textarea {
+  width: 100%; padding: 0.8rem;
+  border: 1px solid #ddd; border-radius: 8px;
+  font-size: 1rem;
+}
+button {
+  background-color: #f7931e; color: white;
+  padding: 1rem 2rem; border: none;
+  border-radius: 8px; font-size: 1.1rem;
+  cursor: pointer; width: 100%;
+  transition: background-color 0.3s;
+}
+button:hover { background-color: #ea9d46; }
+.hidden { display: none !important; }
+
+.captcha-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.captcha {
+  font-family: 'Courier New', monospace;
+  font-size: 1.4rem;
+  font-weight: bold;
+  background-color: #e0e0e0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.reload {
+  margin-left: 10px;
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: #ccc;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.reload:hover { background-color: #bbb; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Energy Consumption Monitoring</h1>
+<p class="subheading">Track and optimize your electricity usage with real-time analytics</p>
+
+<div id="registration-section">
+  <div class="form-section">
+    <div class="form-group">
+      <label for="full-name">Full Name</label>
+      <input type="text" id="full-name" placeholder="John Doe" required />
+    </div>
+
+    <div class="form-group">
+      <label for="contact-number">Contact Number</label>
+      <input type="tel" id="contact-number" placeholder="1234567890" maxlength="10" pattern="[0-9]{10}" required />
+    </div>
+
+    <div class="form-group">
+      <label for="email-address">Email Address</label>
+      <input type="email" id="email-address" placeholder="john@example.com" required />
+    </div>
+
+    <div class="form-group">
+      <label for="physical-address">Physical Address</label>
+      <textarea id="physical-address" rows="4" placeholder="Enter full address including postal code" required></textarea>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2>Set Password & Verify</h2>
+    <div class="form-group">
+      <label for="password">Set Password</label>
+      <input type="password" id="password" placeholder="Enter a strong password" required />
+    </div>
+
+    <div class="form-group">
+      <label for="confirm-password">Confirm Password</label>
+      <input type="password" id="confirm-password" placeholder="Re-enter your password" required />
+    </div>
+
+    <div class="form-group">
+      <label>CAPTCHA</label>
+      <div class="captcha-box">
+        <span class="captcha" id="captcha-text"></span>
+        <button type="button" class="reload" onclick="generateCaptcha()">Reload</button>
+      </div>
+      <input type="text" id="captcha-input" placeholder="Enter CAPTCHA here" required />
+    </div>
+
+    <button id="send-code">Send Confirmation Code</button>
+  </div>
+</div>
+
+<div id="otp-section" class="hidden">
+  <h2>Enter OTP</h2>
+  <div class="form-group">
+    <label for="otp">Confirmation Code</label>
+    <input type="text" id="otp" placeholder="Enter OTP" required />
+  </div>
+  <button id="verify-otp">Verify OTP</button>
+</div>
+</div>
+
+<script>
+function generateCaptcha() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let captcha = '';
+  for (let i = 0; i < 6; i++) {
+    captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById("captcha-text").innerText = captcha;
+  sessionStorage.setItem("captchaValue", captcha);
+}
+
+document.getElementById("contact-number").addEventListener("input", function () {
+  this.value = this.value.replace(/\D/g, "");
+});
+
+document.getElementById("send-code").addEventListener("click", function () {
+  const name = document.getElementById("full-name").value.trim();
+  const contact = document.getElementById("contact-number").value.trim();
+  const email = document.getElementById("email-address").value.trim();
+  const address = document.getElementById("physical-address").value.trim();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirm-password").value;
+  const captchaInput = document.getElementById("captcha-input").value;
+  const storedCaptcha = sessionStorage.getItem("captchaValue");
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!name || !contact || !email || !address || !password || !confirmPassword || !captchaInput) {
+    alert("All fields are required.");
+    return;
+  }
+
+  if (!/^\d{10}$/.test(contact)) {
+    alert("Contact number must be 10 digits.");
+    return;
+  }
+
+  if (!emailPattern.test(email)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  if (captchaInput !== storedCaptcha) {
+    alert("Incorrect CAPTCHA. Please try again.");
+    generateCaptcha();
+    return;
+  }
+
+  // Proceed to OTP step no matter what
+  fetch("http://127.0.0.1:5501/register/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: name,
+      contact: contact,
+      email: email,
+      address: address,
+      password: password
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === "success") {
+      alert("Confirmation code sent to your email and phone.");
+    } else {
+      alert("Server error: " + (data.message || "Unknown error."));
+    }
+  })
+  .catch(error => {
+    console.warn("Server not reachable, but continuing.");
+  })
+  .finally(() => {
+    document.getElementById("registration-section").classList.add("hidden");
+    document.getElementById("otp-section").classList.remove("hidden");
+  });
+});
+
+document.getElementById("verify-otp").addEventListener("click", function () {
+  const otp = document.getElementById("otp").value;
+  const correctOtp = "123456"; // Simulated OTP
+
+  if (otp === correctOtp) {
+    alert("OTP verified successfully! Redirecting to add appliances page...");
+window.location.href = "/signup/add_appliances/";
+  } else {
+    alert("Invalid OTP. Please try again.");
+  }
+});
+
+window.onload = generateCaptcha
+</script>
+</body>
+</html>

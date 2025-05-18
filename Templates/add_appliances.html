@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Appliances - Energy Monitoring</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #e9f5e9;
+            margin: 0;
+            padding: 2rem;
+        }
+    .container {
+        max-width: 700px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 2.5rem 3rem;
+        border-radius: 12px;
+        box-shadow: 0 6px 12px rgba(46, 125, 50, 0.15);
+    }
+
+    h2 {
+        margin-bottom: 20px;
+        color: #f7931e;
+        font-weight: 700;
+        font-size: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.6rem;
+        font-weight: 600;
+        color: #f7931e;
+    }
+
+    select, input[type="number"] {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        border: 1.5px solid #a5d6a7;
+        border-radius: 10px;
+        font-size: 1.05rem;
+        transition: border-color 0.3s ease;
+    }
+
+    select:focus, input[type="number"]:focus {
+        border-color: #f7931e;
+        outline: none;
+        box-shadow: 0 0 8px rgba(214, 101, 8, 0.3);
+    }
+
+    button {
+        padding: 1rem 2rem;
+        border: none;
+        background-color: #f7931e;
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: background-color 0.3s ease;
+        margin-right: 8px;
+    }
+
+    button:hover {
+        background-color: #f19f42;
+    }
+
+    button[disabled] {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    .step {
+        display: none;
+    }
+
+    .step.active {
+        display: block;
+    }
+
+    .button-group {
+        margin-top: 20px;
+    }
+
+    .appliance-section {
+        border: 1px solid #a5d6a7;
+        padding: 1rem 1.2rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        background: #f0f9f0;
+    }
+
+    .brand-model-group {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .brand-model-group .form-group {
+        flex: 1;
+    }
+
+    .wattage-display {
+        font-weight: 600;
+        margin-top: 0.5rem;
+        color: #2e7d32;
+    }
+</style>
+
+</head>
+<body>
+<div class="container">
+    <form id="applianceForm" method="post" action="{% url 'add_appliances' %}">
+        {% csrf_token %}
+        <div class="step active" id="step1">
+            <h2>Step 1: Basic Information</h2>
+            <button type="button" onclick="showStep(2)">Continue</button>
+        </div>
+        <div class="step" id="step2">
+            <h2>Step 2: Select Your Purpose</h2>
+            <div class="form-group">
+                <select id="purposeSelect" name="purpose" required>
+                    <option value="">Select Usage Purpose</option>
+                    <option value="home">Home</option>
+                    <option value="hospital">Hospital</option>
+                    <option value="office">Office</option>
+                    <option value="factory">Factory</option>
+                </select>
+            </div>
+            <button type="button" onclick="showStep(3)">Next</button>
+        </div>
+        <div class="step" id="step3">
+            <h2>Step 3: Add Appliances</h2>
+            <div id="applianceContainer"></div>
+            <div class="button-group">
+                <button type="button" id="addApplianceBtn" onclick="addAppliance()" disabled>＋ Add Appliance</button>
+                <button type="submit" id="submitBtn" disabled>Submit</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Template for Appliance Entry -->
+
+<template id="applianceTemplate">
+    <div class="appliance-section">
+        <div class="form-group">
+            <label>Appliance Type</label>
+            <select class="appliance-select" name="name[]" required></select>
+        </div>
+        <div class="brand-model-group">
+            <div class="form-group">
+                <label>Brand</label>
+                <select class="brand-select" name="brand[]" required></select>
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <select class="model-select" name="model[]" required></select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Daily Usage Time (hours)</label>
+            <input type="number" min="0" max="24" step="0.1" class="usage-time" name="usage_time[]" required>
+        </div>
+        <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" min="1" class="quantity" name="quantity[]" value="1" required>
+        </div>
+        <div class="form-group">
+            <label>Days Used Per Week</label>
+            <input type="number" min="1" max="7" class="days-used-per-week" name="days_used_per_week[]" value="7" required>
+        </div>
+        <input type="hidden" class="power-rating" name="power_rating[]" value="">
+        <div class="wattage-display"></div>
+    </div>
+</template>
+
+<script>
+const applianceData = {
+    "home": [
+    {
+      "appliance": "Ceiling Fan",
+      "brands": [
+        {
+          "name": "Usha",
+          "models": ["Swift", "Striker"],
+          "wattage": [75, 70]
+        },
+        {
+          "name": "Orient",
+          "models": ["Aeroquiet", "Summer Cool"],
+          "wattage": [65, 72]
+        }
+      ]
+    },
+    {
+      "appliance": "LED Bulb",
+      "brands": [
+        {
+          "name": "Philips",
+          "models": ["Cool Daylight 9W", "Warm White 12W"],
+          "wattage": [9, 12]
+        },
+        {
+          "name": "Wipro",
+          "models": ["Garnet 9W", "Smart Bulb 12W"],
+          "wattage": [9, 12]
+        }
+      ]
+    },
+    {
+      "appliance": "Refrigerator",
+      "brands": [
+        {
+          "name": "LG",
+          "models": ["190L", "260L"],
+          "wattage": [120, 200]
+        },
+        {
+          "name": "Samsung",
+          "models": ["253L", "275L"],
+          "wattage": [130, 220]
+        }
+      ]
+    },
+    {
+      "appliance": "Washing Machine",
+      "brands": [
+        {
+          "name": "IFB",
+          "models": ["Front Load", "Top Load"],
+          "wattage": [500, 800]
+        },
+        {
+          "name": "Samsung",
+          "models": ["EcoBubble", "ActiveWash"],
+          "wattage": [450, 850]
+        }
+      ]
+    },
+    {
+      "appliance": "Microwave Oven",
+      "brands": [
+        {
+          "name": "IFB",
+          "models": ["30BRC2", "20PG4S"],
+          "wattage": [900, 1200]
+        },
+        {
+          "name": "LG",
+          "models": ["MC2886BRUM", "MS2043DB"],
+          "wattage": [1000, 1300]
+        }
+      ]
+    },
+    {
+      "appliance": "Air Conditioner",
+      "brands": [
+        {
+          "name": "Voltas",
+          "models": ["123V CZT3", "185V JZJ"],
+          "wattage": [1200, 1500]
+        },
+        {
+          "name": "Daikin",
+          "models": ["FTKM35TV", "FTKF50TV"],
+          "wattage": [1100, 1700]
+        }
+      ]
+    },
+    {
+      "appliance": "Induction Cooktop",
+      "brands": [
+        {
+          "name": "Prestige",
+          "models": ["PIC 20", "PIC 16.0+"],
+          "wattage": [1600, 2000]
+        },
+        {
+          "name": "Philips",
+          "models": ["HD4928", "HD4938"],
+          "wattage": [1800, 2100]
+        }
+      ]
+    },
+    {
+      "appliance": "Geyser",
+      "brands": [
+        {
+          "name": "AO Smith",
+          "models": ["HSE-SDS", "EWS-3"],
+          "wattage": [2000, 3000]
+        },
+        {
+          "name": "Bajaj",
+          "models": ["New Shakti", "Calenta"],
+          "wattage": [2000, 2500]
+        }
+      ]
+    },
+    {
+      "appliance": "TV",
+      "brands": [
+        {
+          "name": "Sony",
+          "name": "Airtel Digital TV",
+          "models": ["Xstream", "HD Box"],
+          "wattage": [14, 20]
+        }
+      ]
+    }
+    ],
+    "hospital": [
+    {
+      "appliance": "Ventilator",
+      "brands": [
+        { "name": "Dräger", "models": ["Evita Infinity V500", "Savina 300"], "wattage": [300, 400] },
+        { "name": "GE Healthcare", "models": ["Engström", "Carestation 600"], "wattage": [350, 500] }
+      ]
+    },
+    {
+      "appliance": "Defibrillator",
+      "brands": [
+        { "name": "Philips", "models": ["HeartStart XL", "FRx"], "wattage": [100, 150] },
+        { "name": "Zoll", "models": ["AED Plus", "X Series"], "wattage": [120, 180] }
+      ]
+    },
+    {
+      "appliance": "MRI Machine",
+      "brands": [
+        { "name": "GE Healthcare", "models": ["Signa Explorer", "Optima MR360"], "wattage": [15000, 25000] },
+        { "name": "Siemens", "models": ["Magnetom Aera", "Avanto"], "wattage": [12000, 20000] }
+      ]
+    },
+    {
+      "appliance": "X-Ray Machine",
+      "brands": [
+        { "name": "Allengers", "models": ["MARS 15", "MARS 35"], "wattage": [3000, 7000] },
+        { "name": "GE", "models": ["Optima XR200amx", "Brivo XR285amx"], "wattage": [2500, 6500] }
+      ]
+    },
+    {
+      "appliance": "Patient Monitor",
+      "brands": [
+        { "name": "Philips", "models": ["IntelliVue MP30", "Efficia CM150"], "wattage": [60, 80] },
+        { "name": "Nihon Kohden", "models": ["Life Scope", "Cardiolife"], "wattage": [55, 75] }
+      ]
+    },
+    {
+      "appliance": "Suction Machine",
+      "brands": [
+        { "name": "Romsons", "models": ["SuctionPro", "DuraVac"], "wattage": [100, 120] },
+        { "name": "Allied", "models": ["Vacutron", "SuctionPro 60"], "wattage": [90, 130] }
+      ]
+    },
+    {
+      "appliance": "Autoclave",
+      "brands": [
+        { "name": "Astell", "models": ["AMSB232", "ASB250"], "wattage": [2000, 3500] },
+        { "name": "Remi", "models": ["RAC-112", "RAC-204"], "wattage": [1800, 3200] }
+      ]
+    },
+    {
+      "appliance": "Infusion Pump",
+      "brands": [
+        { "name": "B Braun", "models": ["Infusomat Space", "Perfusor Space"], "wattage": [20, 35] },
+        { "name": "Smiths Medical", "models": ["CADD-Solis", "Medfusion 3500"], "wattage": [18, 30] }
+      ]
+    },
+    {
+      "appliance": "Ultrasound Machine",
+      "brands": [
+        { "name": "Samsung", "models": ["HS50", "HS40"], "wattage": [500, 1000] },
+        { "name": "GE Healthcare", "models": ["Voluson", "Logiq E9"], "wattage": [750, 1100] }
+      ]
+    },
+    {
+      "appliance": "ECG Machine",
+      "brands": [
+        { "name": "BPL", "models": ["Cardiart 9108D", "6108T"], "wattage": [30, 60] },
+        { "name": "Schiller", "models": ["CARDIOVIT AT-1", "AT-102"], "wattage": [35, 70] }
+      ]
+    },
+    {
+      "appliance": "Nebulizer",
+      "brands": [
+        { "name": "Omron", "models": ["NE C28", "NE U22"], "wattage": [50, 60] },
+        { "name": "Dr Trust", "models": ["Compressor Nebulizer", "Mesh Nebulizer"], "wattage": [30, 45] }
+      ]
+    },
+    {
+      "appliance": "Dental Chair Unit",
+      "brands": [
+        { "name": "Confident Dental", "models": ["Avyanna", "Prelude"], "wattage": [800, 1200] },
+        { "name": "Runyes", "models": ["Care 33", "XH605"], "wattage": [900, 1300] }
+      ]
+    },
+    {
+      "appliance": "Surgical Light",
+      "brands": [
+        { "name": "Dr. Mach", "models": ["Mach LED 5", "LED 2SC"], "wattage": [100, 150] },
+        { "name": "Meditech", "models": ["OT Light 120", "LUXOR"], "wattage": [120, 160] }
+      ]
+    },
+    {
+      "appliance": "Surgical Table",
+      "brands": [
+        { "name": "Skytron", "models": ["1602 Essenti", "1603 Ultra"], "wattage": [300, 500] },
+        { "name": "Mediland", "models": ["OP850", "OP830"], "wattage": [250, 450] }
+      ]
+    },
+    {
+      "appliance": "CPAP Machine",
+      "brands": [
+        { "name": "ResMed", "models": ["AirSense 10", "S9 Elite"], "wattage": [60, 90] },
+        { "name": "Philips", "models": ["DreamStation", "System One"], "wattage": [70, 100] }
+      ]
+    }
+    ]
+};
+
+function showStep(step) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(`step${step}`).classList.add('active');
+}
+
+function createOption(text, value = text) {
+    const option = document.createElement('option');
+    option.textContent = text;
+    option.value = value;
+    return option;
+}
+
+function updateSubmitButtonState() {
+    const hasAppliances = document.getElementById('applianceContainer').children.length > 0;
+    document.getElementById('submitBtn').disabled = !hasAppliances;
+}
+
+function handleApplianceChange(event, purpose, section) {
+    const appliance = applianceData[purpose].find(a => a.appliance === event.target.value);
+    const brandSelect = section.querySelector('.brand-select');
+    const modelSelect = section.querySelector('.model-select');
+    const wattageDisplay = section.querySelector('.wattage-display');
+    const powerRatingInput = section.querySelector('.power-rating');
+    brandSelect.innerHTML = '<option value="">Select Brand</option>';
+    modelSelect.innerHTML = '<option value="">Select Model</option>';
+    wattageDisplay.textContent = '';
+    powerRatingInput.value = '';
+    if (appliance) {
+        appliance.brands.forEach(b => brandSelect.appendChild(createOption(b.name)));
+    }
+}
+
+function handleBrandChange(event, purpose, section) {
+    const applianceName = section.querySelector('.appliance-select').value;
+    const appliance = applianceData[purpose].find(a => a.appliance === applianceName);
+    const brand = appliance?.brands.find(b => b.name === event.target.value);
+    const modelSelect = section.querySelector('.model-select');
+    const wattageDisplay = section.querySelector('.wattage-display');
+    const powerRatingInput = section.querySelector('.power-rating');
+    modelSelect.innerHTML = '<option value="">Select Model</option>';
+    wattageDisplay.textContent = '';
+    powerRatingInput.value = '';
+    if (brand) {
+        brand.models.forEach((model, i) => {
+            const option = createOption(model);
+            option.dataset.wattage = brand.wattage[i];
+            modelSelect.appendChild(option);
+        });
+    }
+}
+
+function handleModelChange(event, section) {
+    const wattage = event.target.selectedOptions[0]?.dataset?.wattage;
+    const wattageDisplay = section.querySelector('.wattage-display');
+    const powerRatingInput = section.querySelector('.power-rating');
+    wattageDisplay.textContent = wattage ? `Wattage: ${wattage} W` : '';
+    powerRatingInput.value = wattage || '';
+}
+
+function addAppliance() {
+    console.log('Add Appliance button clicked');
+    const purpose = document.getElementById('purposeSelect').value;
+    if (!purpose || !applianceData[purpose]) {
+        console.log('Invalid purpose:', purpose);
+        return;
+    }
+
+    const template = document.getElementById('applianceTemplate').content.cloneNode(true);
+    const section = template.querySelector('.appliance-section');
+    const applianceSelect = section.querySelector('.appliance-select');
+    const brandSelect = section.querySelector('.brand-select');
+    const modelSelect = section.querySelector('.model-select');
+
+    applianceSelect.innerHTML = '<option value="">Select Appliance</option>';
+    applianceData[purpose].forEach(a => applianceSelect.appendChild(createOption(a.appliance)));
+
+    applianceSelect.addEventListener('change', (e) => handleApplianceChange(e, purpose, section));
+    brandSelect.addEventListener('change', (e) => handleBrandChange(e, purpose, section));
+    modelSelect.addEventListener('change', (e) => handleModelChange(e, section));
+
+    document.getElementById('applianceContainer').appendChild(template);
+    updateSubmitButtonState();
+}
+
+document.getElementById('purposeSelect').addEventListener('change', function () {
+    console.log('Purpose selected:', this.value);
+    const isValid = !!this.value;
+    document.getElementById('applianceContainer').innerHTML = '';
+    document.getElementById('addApplianceBtn').disabled = !isValid;
+    updateSubmitButtonState();
+});
+
+window.onload = () => {
+    document.getElementById('addApplianceBtn').disabled = true;
+    document.getElementById('submitBtn').disabled = true;
+};
+</script>
+
+</body>
+</html>

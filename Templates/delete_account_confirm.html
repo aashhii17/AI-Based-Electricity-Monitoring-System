@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Confirm Account Deletion</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff8f0;
+      color: #1e1e1e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .confirm-box {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #f7931e;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button.cancel {
+      background-color: #ccc;
+      color: #333;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="confirm-box">
+    <h2>Confirm Account Deletion</h2>
+    <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+    <form method="post" action="{% url 'delete_account' %}">
+      {% csrf_token %}
+      <button type="submit">Yes, Delete My Account</button>
+      <a href="{% url 'dashboard' %}"><button type="button" class="cancel">Cancel</button></a>
+    </form>
+  </div>
+</body>
+</html>

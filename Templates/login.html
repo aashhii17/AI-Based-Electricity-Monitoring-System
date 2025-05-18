@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Electricity Monitoring System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 450px;
+      margin: 0 auto;
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #f7931e;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .error-message {
+      color: red;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    label {
+      margin-top: 1rem;
+      display: block;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.8rem;
+      margin-top: 0.4rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    .password-wrapper {
+      position: relative;
+    }
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 1rem;
+      color: #888;
+    }
+    button {
+      background-color: #f7931e;
+      color: white;
+      padding: 1rem;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #ee9e42;
+    }
+    .signup-link {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+    .signup-link a {
+      color: #f7931e;
+      text-decoration: none;
+    }
+    .signup-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Login</h1>
+
+    {% if messages %}
+      <div class="error-message">
+        {% for message in messages %}
+          {{ message }}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+
+      <label for="contact_no">Contact Number</label>
+      <input type="text" id="contact_no" name="contact_no" required maxlength="10" placeholder="Enter contact number" />
+
+      <label for="password">Password</label>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" required placeholder="Enter password" />
+        <span class="toggle-password" onclick="togglePassword()">👁️</span>
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <div class="signup-link">
+      Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const pwdInput = document.getElementById("password");
+      const icon = document.querySelector(".toggle-password");
+      if (pwdInput.type === "password") {
+        pwdInput.type = "text";
+        icon.textContent = "🙈";
+      } else {
+        pwdInput.type = "password";
+        icon.textContent = "👁️";
+      }
+    }
+
+    // Only allow numeric input for contact number
+    document.getElementById('contact_no').addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '');
+    });
+  </script>
+</body>
+</html>
